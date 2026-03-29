@@ -1,0 +1,26 @@
+{
+  "manifestVersion": 1,
+  "id": "reader_translator",
+  "name": "Reader Translator",
+  "author": "heimi98",
+  "repoUrl": "https://github.com/heimi98/remnote-reader-translator-plugin",
+  "projectUrl": "https://github.com/heimi98/remnote-reader-translator-plugin",
+  "supportUrl": "https://github.com/heimi98/remnote-reader-translator-plugin/issues",
+  "changelogUrl": "https://github.com/heimi98/remnote-reader-translator-plugin/releases",
+  "version": {
+    "major": 1,
+    "minor": 0,
+    "patch": 0
+  },
+  "theme": [],
+  "enableOnMobile": false,
+  "description": "Translate copied text in RemNote with Baidu, Tencent, or OpenAI-compatible providers.",
+  "requestNative": true,
+  "requiredScopes": [
+    {
+      "type": "All",
+      "level": "Read"
+    }
+  ],
+  "unlisted": false
+}

@@ -1,0 +1,15 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="readerTranslatorBg" x1="10" y1="10" x2="54" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="48" height="48" rx="14" fill="url(#readerTranslatorBg)"/>
+  <path d="M20.5 24.5H33" stroke="#E0F2FE" stroke-width="3" stroke-linecap="round"/>
+  <path d="M27 24.5C27 34.4 22.6 39.6 17 42.2" stroke="#E0F2FE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M24 31.8C25.6 34.3 28.2 36.8 31.2 38.4" stroke="#E0F2FE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M38 21L47 39" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <path d="M43.8 31H33.8" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <path d="M49.7 18.7L50.8 21.8L53.9 22.9L50.8 24L49.7 27.1L48.6 24L45.5 22.9L48.6 21.8L49.7 18.7Z" fill="#BAE6FD"/>
+</svg>
