@@ -1,5 +1,6 @@
 import type { RNPlugin } from '@remnote/plugin-sdk';
 
+import { pickLocalized } from './i18n';
 import { getErrorMessage } from './http';
 import { loadRuntimeSettings } from './settings';
 import { translateSelectionText } from './translation';
@@ -9,6 +10,7 @@ const REQUEST_TYPE = 'reader-translator:translation-request';
 const ACK_TYPE = 'reader-translator:translation-ack';
 const RESPONSE_TYPE = 'reader-translator:translation-response';
 const MESSAGE_BROADCAST_EVENT = 'messaging.broadcast';
+const BRIDGE_CHANNEL = 'reader-translator:translation-bridge';
 
 const DEFAULT_ACK_TIMEOUT_MS = 300;
 const DEFAULT_RESPONSE_TIMEOUT_MS = 25_000;
@@ -55,7 +57,12 @@ interface RequestTranslationOptions {
 }
 
 export class BridgeUnavailableError extends Error {
-  constructor(message = 'Translation bridge is unavailable.') {
+  constructor(
+    message = pickLocalized(
+      '插件内部翻译桥接未响应，请重载插件后重试。',
+      'The internal translation bridge did not respond. Please reload the plugin and try again.'
+    )
+  ) {
     super(message);
     this.name = 'BridgeUnavailableError';
     Object.setPrototypeOf(this, new.target.prototype);
@@ -99,6 +106,30 @@ function isBridgeMessage(value: unknown): value is BridgeMessage {
   return false;
 }
 
+export function extractBroadcastBridgeMessage(value: unknown): BridgeMessage | null {
+  if (isBridgeMessage(value)) {
+    return value;
+  }
+
+  if (!isObject(value)) {
+    return null;
+  }
+
+  if (value.channel === BRIDGE_CHANNEL && isBridgeMessage(value.message)) {
+    return value.message;
+  }
+
+  if (isBridgeMessage(value.message)) {
+    return value.message;
+  }
+
+  if (isBridgeMessage(value.payload)) {
+    return value.payload;
+  }
+
+  return null;
+}
+
 function createRequestId(): string {
   return `translation-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
@@ -106,15 +137,41 @@ function createRequestId(): string {
 function createPluginBridgeTransport(plugin: RNPlugin): TranslationBridgeTransport {
   return {
     async post(message) {
-      await plugin.messaging.broadcast(message);
+      await plugin.messaging.broadcast({
+        channel: BRIDGE_CHANNEL,
+        message,
+      });
     },
     subscribe(listener) {
-      plugin.event.addListener(MESSAGE_BROADCAST_EVENT, undefined, listener);
+      const subscriptions: Array<{ key: string | undefined; callback: (args: unknown) => void }> = [];
+
+      for (const key of [undefined, BRIDGE_CHANNEL]) {
+        const callback = (args: unknown) => {
+          const message = extractBroadcastBridgeMessage(args);
+          if (message) {
+            listener(message);
+          }
+        };
+
+        subscriptions.push({ key, callback });
+        plugin.event.addListener(MESSAGE_BROADCAST_EVENT, key, callback);
+      }
+
       return () => {
-        plugin.event.removeListener(MESSAGE_BROADCAST_EVENT, undefined, listener);
+        for (const { key, callback } of subscriptions) {
+          plugin.event.removeListener(MESSAGE_BROADCAST_EVENT, key, callback);
+        }
       };
     },
   };
+}
+
+function isLocalDevelopmentRuntime(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return ['localhost', '127.0.0.1'].includes(window.location.hostname);
 }
 
 export async function requestTranslationViaTransport(
@@ -240,6 +297,10 @@ export async function translateSelectionTextWithBridge(
     return await requestTranslationViaTransport(createPluginBridgeTransport(plugin), request);
   } catch (error) {
     if (!(error instanceof BridgeUnavailableError)) {
+      throw error;
+    }
+
+    if (!isLocalDevelopmentRuntime()) {
       throw error;
     }
 

@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   BridgeUnavailableError,
   createTranslationBridgeHandler,
+  extractBroadcastBridgeMessage,
   requestTranslationViaTransport,
 } = require('../src/lib/translationBridge.ts');
 
@@ -98,5 +99,29 @@ test('surfaces the bridge error message to the caller', async () => {
       }
     ),
     /bridge translation failed/
+  );
+});
+
+test('extracts a raw bridge message payload', async () => {
+  const message = {
+    type: 'reader-translator:translation-ack',
+    requestId: 'request-1',
+  };
+
+  assert.deepEqual(extractBroadcastBridgeMessage(message), message);
+});
+
+test('extracts a channel-wrapped bridge message payload', async () => {
+  const innerMessage = {
+    type: 'reader-translator:translation-ack',
+    requestId: 'request-2',
+  };
+
+  assert.deepEqual(
+    extractBroadcastBridgeMessage({
+      channel: 'reader-translator:translation-bridge',
+      message: innerMessage,
+    }),
+    innerMessage
   );
 });
