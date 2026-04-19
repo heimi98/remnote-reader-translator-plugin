@@ -1,7 +1,7 @@
 import type { RNPlugin } from '@remnote/plugin-sdk';
 
 import { pickLocalized } from './i18n';
-import { getErrorMessage } from './http';
+import { formatDiagnosticMessage, getErrorMessage } from './http';
 import { loadRuntimeSettings } from './settings';
 import { translateSelectionText } from './translation';
 import type { TranslationRequest, TranslationResult, TranslationRuntimeSettings } from './types';
@@ -59,9 +59,22 @@ interface RequestTranslationOptions {
 
 export class BridgeUnavailableError extends Error {
   constructor(
-    message = pickLocalized(
-      '插件内部翻译桥接未响应，请重载插件后重试。',
-      'The internal translation bridge did not respond. Please reload the plugin and try again.'
+    message = formatDiagnosticMessage(
+      pickLocalized(
+        '插件内部翻译桥接未响应，请求还停留在插件内部阶段。',
+        'The internal translation bridge did not respond, and the request never left the plugin-internal stage.'
+      ),
+      {
+        code: 'RT-BRIDGE-NO-ACK',
+        stage: pickLocalized(
+          'widget 到 index 插件上下文的内部桥接',
+          'The internal bridge from the widget to the index plugin context'
+        ),
+        nextStep: pickLocalized(
+          '先重载插件；若仍复现，保留该诊断码截图，这通常不是 provider 凭证问题。',
+          'Reload the plugin first; if it reproduces, keep this diagnostic code in the screenshot because it is usually not a provider credential issue.'
+        ),
+      }
     )
   ) {
     super(message);
