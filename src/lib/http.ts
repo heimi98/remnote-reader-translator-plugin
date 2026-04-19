@@ -1,6 +1,11 @@
 import { getProviderLabel } from './constants';
 import type { TranslationProvider } from './types';
 import { pickLocalized } from './i18n';
+import {
+  isLocalDevelopmentOrigin,
+  isSandboxRuntime,
+  providerRequiresNativeRuntime,
+} from './runtime';
 
 export interface ParsedHttpResponse<T = unknown> {
   response: Response;
@@ -10,6 +15,7 @@ export interface ParsedHttpResponse<T = unknown> {
 
 export type TranslationErrorKind =
   | 'configuration'
+  | 'runtime'
   | 'credential'
   | 'network'
   | 'service'
@@ -56,12 +62,8 @@ export function isTranslationError(error: unknown): error is TranslationError {
   return error instanceof TranslationError;
 }
 
-function isLocalDevelopmentOrigin(): boolean {
-  if (typeof window === 'undefined') {
-    return false;
-  }
-
-  return ['localhost', '127.0.0.1'].includes(window.location.hostname);
+function providerNeedsNativeModeHint(provider?: TranslationProvider): boolean {
+  return !isLocalDevelopmentOrigin() && isSandboxRuntime() && providerRequiresNativeRuntime(provider);
 }
 
 function getRequestUrlString(input: RequestInfo | URL): string | null {
@@ -192,6 +194,31 @@ export function formatTranslationError(
           provider: error.provider,
         }
       );
+    case 'runtime':
+      return formatDiagnosticMessage(
+        error.detail?.trim() ||
+          t(
+            '当前运行环境不支持这个翻译服务，请调整插件运行模式后重试。',
+            'The current runtime does not support this translation provider. Adjust the plugin runtime mode and try again.'
+          ),
+        {
+          code: 'RT-RUNTIME-UNSUPPORTED',
+          stage: t(
+            '插件当前运行环境不支持该翻译服务的请求路径',
+            'The plugin runtime does not support the request path required by this provider'
+          ),
+          nextStep: providerRequiresNativeRuntime(error.provider)
+            ? t(
+                '先切到 native mode；如果当前安装形态无法使用 native mode，请改用 AI 翻译。',
+                'Switch the plugin to native mode first; if native mode is unavailable in this installation, use AI Translate instead.'
+              )
+            : t(
+                '调整插件运行模式或改用其他翻译服务后重试。',
+                'Adjust the plugin runtime mode or use a different provider, then try again.'
+              ),
+          provider: error.provider,
+        }
+      );
     case 'network':
       {
         const cannotVerifyCredentialHint = error.provider
@@ -216,8 +243,14 @@ export function formatTranslationError(
               ? t(
                   ' 请确认目标 AI 接口允许浏览器直连。',
                   ' Please verify the target AI endpoint allows direct browser requests.'
-                )
-              : '';
+              )
+            : '';
+        const nativeModeHint = providerNeedsNativeModeHint(error.provider)
+          ? t(
+              ' 当前插件看起来仍运行在 RemNote 的 sandbox/iframe 模式，这类服务通常需要切到 native mode 才能稳定发出请求。',
+              ' The plugin appears to still be running in RemNote sandbox/iframe mode. These providers usually need native mode before requests can leave the host reliably.'
+            )
+          : '';
 
         if (isLocalDevProxyInactive(error.detail)) {
           return formatDiagnosticMessage(
@@ -260,19 +293,29 @@ export function formatTranslationError(
 
         return formatDiagnosticMessage(
           t(
-            `请求未成功发出，可能是网络、跨域或 RemNote 客户端环境拦截。${cannotVerifyCredentialHint}${localDevelopmentHint}${providerHint}`.trim(),
-            `Request failed before completion. This may be caused by network issues, CORS, or RemNote client restrictions.${cannotVerifyCredentialHint}${localDevelopmentHint}${providerHint}`.trim()
+            `请求未成功发出，可能是网络、跨域或 RemNote 客户端环境拦截。${cannotVerifyCredentialHint}${localDevelopmentHint}${providerHint}${nativeModeHint}`.trim(),
+            `Request failed before completion. This may be caused by network issues, CORS, or RemNote client restrictions.${cannotVerifyCredentialHint}${localDevelopmentHint}${providerHint}${nativeModeHint}`.trim()
           ),
           {
             code: 'RT-NET-BLOCKED',
-            stage: t(
-              '请求在到达翻译服务之前，被浏览器、跨域策略或 RemNote 宿主环境拦截',
-              'The request was blocked by the browser, CORS policy, or RemNote host before reaching the provider'
-            ),
-            nextStep: t(
-              '这类失败优先看宿主/跨域链路，不要先怀疑凭证；再次失败时直接保留该诊断码截图。',
-              'Treat this as a host/CORS path issue before suspecting credentials; keep this diagnostic code in the next screenshot.'
-            ),
+            stage: providerNeedsNativeModeHint(error.provider)
+              ? t(
+                  '请求在 RemNote sandbox/iframe 宿主里被拦截，尚未到达翻译服务',
+                  'The request was blocked inside the RemNote sandbox/iframe host before reaching the provider'
+                )
+              : t(
+                  '请求在到达翻译服务之前，被浏览器、跨域策略或 RemNote 宿主环境拦截',
+                  'The request was blocked by the browser, CORS policy, or RemNote host before reaching the provider'
+                ),
+            nextStep: providerNeedsNativeModeHint(error.provider)
+              ? t(
+                  '先在 RemNote 里把该插件切到 native mode 后重试；若仍复现，再保留该诊断码截图，不要先怀疑凭证。',
+                  'Switch this plugin to native mode in RemNote first, then retry; if it still reproduces, keep this diagnostic code in the next screenshot before suspecting credentials.'
+                )
+              : t(
+                  '这类失败优先看宿主/跨域链路，不要先怀疑凭证；再次失败时直接保留该诊断码截图。',
+                  'Treat this as a host/CORS path issue before suspecting credentials; keep this diagnostic code in the next screenshot.'
+                ),
             provider: error.provider,
           }
         );

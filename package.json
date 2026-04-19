@@ -1,9 +1,9 @@
 {
   "private": true,
   "name": "remnote-reader-translator",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "license": "MIT",
-  "description": "A RemNote plugin for translating copied text with Baidu, Tencent, or OpenAI-compatible providers.",
+  "description": "A RemNote plugin for translating copied text with OpenAI-compatible AI providers.",
   "scripts": {
     "check-types": "tsc",
     "test:unit": "node --require ts-node/register/transpile-only --test tests/*.test.js",

@@ -1,14 +1,17 @@
 import { getProviderLabel } from './constants';
+import { createTranslationError } from './http';
 import { pickLocalized } from './i18n';
+import {
+  getUnsupportedProviderRuntimeDetail,
+  isProviderSupportedInCurrentRuntime,
+} from './runtime';
 import type {
   ReaderSelectionLike,
   TranslationRequest,
   TranslationResult,
   TranslationRuntimeSettings,
 } from './types';
-import { translateWithBaidu } from './providers/baidu';
 import { translateWithOpenAICompatible } from './providers/openaiCompatible';
-import { translateWithTencent } from './providers/tencent';
 
 const pendingTranslations = new Map<string, Promise<TranslationResult>>();
 
@@ -63,15 +66,23 @@ async function runTranslation(
 ): Promise<TranslationResult> {
   const t = (zhHans: string, en: string) => pickLocalized(zhHans, en);
 
+  if (!isProviderSupportedInCurrentRuntime(request.provider)) {
+    throw createTranslationError({
+      kind: 'runtime',
+      provider: request.provider,
+      detail: getUnsupportedProviderRuntimeDetail(request.provider),
+    });
+  }
+
   switch (request.provider) {
-    case 'baidu':
-      return translateWithBaidu(settings, request);
-    case 'tencent':
-      return translateWithTencent(settings, request);
     case 'ai':
       return translateWithOpenAICompatible(settings, request);
     default:
-      throw new Error(t('不支持的翻译服务。', 'Unsupported translation provider.'));
+      throw createTranslationError({
+        kind: 'runtime',
+        provider: request.provider,
+        detail: getUnsupportedProviderRuntimeDetail(request.provider),
+      });
   }
 }
 

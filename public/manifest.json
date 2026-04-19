@@ -9,12 +9,12 @@
   "changelogUrl": "https://github.com/heimi98/remnote-reader-translator-plugin/releases",
   "version": {
     "major": 1,
-    "minor": 0,
-    "patch": 6
+    "minor": 1,
+    "patch": 0
   },
   "theme": [],
   "enableOnMobile": false,
-  "description": "Translate copied text in RemNote with Baidu, Tencent, or OpenAI-compatible providers.",
+  "description": "Translate copied text in RemNote with OpenAI-compatible AI providers.",
   "requestNative": true,
   "requiredScopes": [
     {

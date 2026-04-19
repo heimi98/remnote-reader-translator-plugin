@@ -7,6 +7,22 @@ const {
 } = require('../src/lib/http.ts');
 const { BridgeUnavailableError } = require('../src/lib/translationBridge.ts');
 
+function withMockWindow(mockWindow, run) {
+  const previousWindow = global.window;
+
+  global.window = mockWindow;
+
+  try {
+    run();
+  } finally {
+    if (typeof previousWindow === 'undefined') {
+      delete global.window;
+    } else {
+      global.window = previousWindow;
+    }
+  }
+}
+
 test('configuration errors include a diagnostic code and next action', () => {
   const error = createTranslationError({
     kind: 'configuration',
@@ -23,7 +39,7 @@ test('configuration errors include a diagnostic code and next action', () => {
 test('network errors include a diagnostic code and failure stage', () => {
   const error = createTranslationError({
     kind: 'network',
-    provider: 'baidu',
+    provider: 'ai',
     detail: 'Failed to fetch',
   });
 
@@ -31,6 +47,19 @@ test('network errors include a diagnostic code and failure stage', () => {
 
   assert.match(message, /RT-NET-BLOCKED/);
   assert.match(message, /请求还没到达翻译服务|did not reach the translation provider/i);
+});
+
+test('runtime errors include a dedicated diagnostic code and AI fallback guidance', () => {
+  const error = createTranslationError({
+    kind: 'runtime',
+    provider: 'baidu',
+    detail: 'Baidu Translate has been removed from the current plugin release.',
+  });
+
+  const message = getErrorMessage(error);
+
+  assert.match(message, /RT-RUNTIME-UNSUPPORTED/);
+  assert.match(message, /AI/i);
 });
 
 test('service errors include a diagnostic code', () => {

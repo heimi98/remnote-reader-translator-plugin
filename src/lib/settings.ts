@@ -8,7 +8,12 @@ import {
 } from './constants';
 import { getSourceLanguageOptions, getTargetLanguageOptions } from './languages';
 import { pickLocalized } from './i18n';
+import { getDefaultProviderForCurrentRuntime } from './runtime';
 import type { TranslationProvider, TranslationRuntimeSettings, UnifiedLanguage } from './types';
+
+export function normalizeConfiguredProvider(value: unknown): TranslationProvider {
+  return value === 'ai' ? 'ai' : getDefaultProviderForCurrentRuntime();
+}
 
 export async function registerPluginSettings(plugin: RNPlugin): Promise<void> {
   const t = (zhHans: string, en: string) => pickLocalized(zhHans, en);
@@ -16,11 +21,9 @@ export async function registerPluginSettings(plugin: RNPlugin): Promise<void> {
   await plugin.settings.registerDropdownSetting({
     id: SETTING_IDS.provider,
     title: t('翻译服务', 'Translation Provider'),
-    description: t('选择划词翻译使用的服务商。', 'Choose the provider used for translating selected text.'),
-    defaultValue: 'baidu',
+    description: t('选择插件使用的翻译服务。当前版本仅保留 AI 翻译。', 'Choose the translation service used by the plugin. This release keeps AI Translate only.'),
+    defaultValue: getDefaultProviderForCurrentRuntime(),
     options: [
-      { key: 'provider-baidu', label: t('百度翻译', 'Baidu Translate'), value: 'baidu' },
-      { key: 'provider-tencent', label: t('腾讯翻译', 'Tencent Translate'), value: 'tencent' },
       {
         key: 'provider-ai',
         label: t('AI 翻译（OpenAI-compatible）', 'AI Translate (OpenAI-compatible)'),
@@ -63,37 +66,6 @@ export async function registerPluginSettings(plugin: RNPlugin): Promise<void> {
       'Toggle this switch to test the currently selected provider. To test again, switch it off then on, or run "Test Translation Provider Connectivity" from the command palette.'
     ),
     defaultValue: false,
-  });
-
-  await plugin.settings.registerStringSetting({
-    id: SETTING_IDS.baiduAppId,
-    title: t('百度翻译 AppID', 'Baidu AppID'),
-    description: t('使用百度翻译时必填。', 'Required when using Baidu Translate.'),
-    defaultValue: '',
-  });
-
-  await plugin.settings.registerStringSetting({
-    id: SETTING_IDS.baiduSecretKey,
-    title: t('百度翻译 Secret Key', 'Baidu Secret Key'),
-    description: t('使用百度翻译时必填。', 'Required when using Baidu Translate.'),
-    defaultValue: '',
-  });
-
-  await plugin.settings.registerStringSetting({
-    id: SETTING_IDS.tencentSecretId,
-    title: t('腾讯翻译 SecretId', 'Tencent SecretId'),
-    description: t('使用腾讯翻译时必填。', 'Required when using Tencent Translate.'),
-    defaultValue: '',
-  });
-
-  await plugin.settings.registerStringSetting({
-    id: SETTING_IDS.tencentSecretKey,
-    title: t('腾讯翻译 SecretKey', 'Tencent SecretKey'),
-    description: t(
-      '使用腾讯翻译时必填。默认按 ap-beijing 区域签名。',
-      'Required when using Tencent Translate. Signed with region ap-beijing by default.'
-    ),
-    defaultValue: '',
   });
 
   await plugin.settings.registerStringSetting({
@@ -154,10 +126,6 @@ export async function loadRuntimeSettings(plugin: RNPlugin): Promise<Translation
     provider,
     sourceLanguage,
     targetLanguage,
-    baiduAppId,
-    baiduSecretKey,
-    tencentSecretId,
-    tencentSecretKey,
     aiBaseUrl,
     aiApiKey,
     aiModel,
@@ -166,10 +134,6 @@ export async function loadRuntimeSettings(plugin: RNPlugin): Promise<Translation
     plugin.settings.getSetting<TranslationProvider>(SETTING_IDS.provider),
     plugin.settings.getSetting<UnifiedLanguage>(SETTING_IDS.sourceLanguage),
     plugin.settings.getSetting<UnifiedLanguage>(SETTING_IDS.targetLanguage),
-    plugin.settings.getSetting<string>(SETTING_IDS.baiduAppId),
-    plugin.settings.getSetting<string>(SETTING_IDS.baiduSecretKey),
-    plugin.settings.getSetting<string>(SETTING_IDS.tencentSecretId),
-    plugin.settings.getSetting<string>(SETTING_IDS.tencentSecretKey),
     plugin.settings.getSetting<string>(SETTING_IDS.aiBaseUrl),
     plugin.settings.getSetting<string>(SETTING_IDS.aiApiKey),
     plugin.settings.getSetting<string>(SETTING_IDS.aiModel),
@@ -177,13 +141,13 @@ export async function loadRuntimeSettings(plugin: RNPlugin): Promise<Translation
   ]);
 
   return {
-    provider: provider ?? 'baidu',
+    provider: normalizeConfiguredProvider(provider),
     sourceLanguage: sourceLanguage ?? 'en',
     targetLanguage: targetLanguage ?? 'zh-Hans',
-    baiduAppId: (baiduAppId ?? '').trim(),
-    baiduSecretKey: (baiduSecretKey ?? '').trim(),
-    tencentSecretId: (tencentSecretId ?? '').trim(),
-    tencentSecretKey: (tencentSecretKey ?? '').trim(),
+    baiduAppId: '',
+    baiduSecretKey: '',
+    tencentSecretId: '',
+    tencentSecretKey: '',
     aiBaseUrl: (aiBaseUrl ?? DEFAULT_AI_BASE_URL).trim(),
     aiApiKey: (aiApiKey ?? '').trim(),
     aiModel: (aiModel ?? '').trim(),

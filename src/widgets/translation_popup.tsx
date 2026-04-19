@@ -239,8 +239,8 @@ function TranslationPopup() {
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-4">
           <div className="text-xs text-slate-500">
             {t(
-              '支持百度、腾讯和 OpenAI-compatible 服务。',
-              'Supports Baidu, Tencent, and OpenAI-compatible providers.'
+              '支持 OpenAI-compatible AI 翻译服务。',
+              'Supports OpenAI-compatible AI translation providers.'
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
