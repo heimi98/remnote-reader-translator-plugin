@@ -9,8 +9,9 @@ import type { TranslationRequest, TranslationResult, TranslationRuntimeSettings 
 const REQUEST_TYPE = 'reader-translator:translation-request';
 const ACK_TYPE = 'reader-translator:translation-ack';
 const RESPONSE_TYPE = 'reader-translator:translation-response';
-const MESSAGE_BROADCAST_EVENT = 'messaging.broadcast';
-const BRIDGE_CHANNEL = 'reader-translator:translation-bridge';
+const BRIDGE_BROADCAST_CHANNEL = 'reader-translator:translation-bridge';
+const STORAGE_SESSION_CHANGE_EVENT = 'storage.session.changed';
+const BRIDGE_SESSION_KEY = 'reader-translator-translation-bridge';
 
 const DEFAULT_ACK_TIMEOUT_MS = 300;
 const DEFAULT_RESPONSE_TIMEOUT_MS = 25_000;
@@ -115,8 +116,28 @@ export function extractBroadcastBridgeMessage(value: unknown): BridgeMessage | n
     return null;
   }
 
-  if (value.channel === BRIDGE_CHANNEL && isBridgeMessage(value.message)) {
+  if (value.channel === BRIDGE_BROADCAST_CHANNEL && isBridgeMessage(value.message)) {
     return value.message;
+  }
+
+  if (isBridgeMessage(value.message)) {
+    return value.message;
+  }
+
+  if (isBridgeMessage(value.payload)) {
+    return value.payload;
+  }
+
+  return null;
+}
+
+export function extractStoredBridgeMessage(value: unknown): BridgeMessage | null {
+  if (isBridgeMessage(value)) {
+    return value;
+  }
+
+  if (!isObject(value)) {
+    return null;
   }
 
   if (isBridgeMessage(value.message)) {
@@ -137,30 +158,23 @@ function createRequestId(): string {
 function createPluginBridgeTransport(plugin: RNPlugin): TranslationBridgeTransport {
   return {
     async post(message) {
-      await plugin.messaging.broadcast({
-        channel: BRIDGE_CHANNEL,
+      await plugin.storage.setSession(BRIDGE_SESSION_KEY, {
         message,
+        updatedAt: Date.now(),
       });
     },
     subscribe(listener) {
-      const subscriptions: Array<{ key: string | undefined; callback: (args: unknown) => void }> = [];
+      const callback = (args: unknown) => {
+        const message = extractStoredBridgeMessage(args);
+        if (message) {
+          listener(message);
+        }
+      };
 
-      for (const key of [undefined, BRIDGE_CHANNEL]) {
-        const callback = (args: unknown) => {
-          const message = extractBroadcastBridgeMessage(args);
-          if (message) {
-            listener(message);
-          }
-        };
-
-        subscriptions.push({ key, callback });
-        plugin.event.addListener(MESSAGE_BROADCAST_EVENT, key, callback);
-      }
+      plugin.event.addListener(STORAGE_SESSION_CHANGE_EVENT, BRIDGE_SESSION_KEY, callback);
 
       return () => {
-        for (const { key, callback } of subscriptions) {
-          plugin.event.removeListener(MESSAGE_BROADCAST_EVENT, key, callback);
-        }
+        plugin.event.removeListener(STORAGE_SESSION_CHANGE_EVENT, BRIDGE_SESSION_KEY, callback);
       };
     },
   };

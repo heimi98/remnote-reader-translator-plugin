@@ -5,6 +5,7 @@ const {
   BridgeUnavailableError,
   createTranslationBridgeHandler,
   extractBroadcastBridgeMessage,
+  extractStoredBridgeMessage,
   requestTranslationViaTransport,
 } = require('../src/lib/translationBridge.ts');
 
@@ -121,6 +122,21 @@ test('extracts a channel-wrapped bridge message payload', async () => {
     extractBroadcastBridgeMessage({
       channel: 'reader-translator:translation-bridge',
       message: innerMessage,
+    }),
+    innerMessage
+  );
+});
+
+test('extracts a storage-wrapped bridge message payload', async () => {
+  const innerMessage = {
+    type: 'reader-translator:translation-ack',
+    requestId: 'request-3',
+  };
+
+  assert.deepEqual(
+    extractStoredBridgeMessage({
+      message: innerMessage,
+      updatedAt: Date.now(),
     }),
     innerMessage
   );
