@@ -1,11 +1,12 @@
 {
   "private": true,
   "name": "remnote-reader-translator",
-  "version": "1.0.1",
+  "version": "1.0.4",
   "license": "MIT",
   "description": "A RemNote plugin for translating copied text with Baidu, Tencent, or OpenAI-compatible providers.",
   "scripts": {
     "check-types": "tsc",
+    "test:unit": "node --require ts-node/register/transpile-only --test tests/*.test.js",
     "dev": "cross-env NODE_ENV=development webpack-dev-server --color --progress --no-open",
     "build": "npx remnote-plugin validate && shx rm -rf dist PluginZip.zip && cross-env NODE_ENV=production webpack --color --progress && cd dist && bestzip ../PluginZip.zip ./*"
   },

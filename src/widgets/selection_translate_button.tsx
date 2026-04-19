@@ -15,7 +15,7 @@ import { pickLocalized, useUiLanguage } from '../lib/i18n';
 import { getLanguageLabel } from '../lib/languages';
 import { installSdkUnknownEventGuard } from '../lib/sdkGuard';
 import { loadRuntimeSettings } from '../lib/settings';
-import { translateSelectionText } from '../lib/translation';
+import { translateSelectionTextWithBridge } from '../lib/translationBridge';
 
 type TranslateStatus = 'idle' | 'loading' | 'success' | 'error';
 
@@ -97,7 +97,7 @@ function SelectionTranslateButton() {
       });
 
       const runtimeSettings = await loadRuntimeSettings(plugin);
-      const result = await translateSelectionText(runtimeSettings, {
+      const result = await translateSelectionTextWithBridge(plugin, runtimeSettings, {
         text: normalizedText,
         sourceLanguage: runtimeSettings.sourceLanguage,
         targetLanguage: runtimeSettings.targetLanguage,

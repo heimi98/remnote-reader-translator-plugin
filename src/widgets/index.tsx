@@ -27,8 +27,10 @@ import {
 } from '../lib/settings';
 import { installSdkUnknownEventGuard } from '../lib/sdkGuard';
 import { testTranslationProviderConnectivity } from '../lib/translation';
+import { registerPluginTranslationBridge } from '../lib/translationBridge';
 
 let isConnectivityTestRunning = false;
+let disposeTranslationBridge: (() => void) | null = null;
 installSdkUnknownEventGuard();
 
 async function runConnectivityTest(plugin: ReactRNPlugin): Promise<void> {
@@ -73,6 +75,8 @@ async function onActivate(plugin: ReactRNPlugin) {
   const t = (zhHans: string, en: string) => pickLocalized(zhHans, en);
 
   await registerPluginSettings(plugin);
+  disposeTranslationBridge?.();
+  disposeTranslationBridge = registerPluginTranslationBridge(plugin);
   const translateTabIcon = `${plugin.rootURL}translate-tab.svg`;
   const translateShortcut = resolveTranslateShortcut(
     await plugin.settings.getSetting<string>(SETTING_IDS.translateShortcut)
@@ -185,6 +189,8 @@ async function onActivate(plugin: ReactRNPlugin) {
 }
 
 async function onDeactivate(plugin: ReactRNPlugin) {
+  disposeTranslationBridge?.();
+  disposeTranslationBridge = null;
   await plugin.app.unregisterWidget(SELECTION_BUTTON_WIDGET_NAME, WidgetLocation.SelectedTextMenu);
   await plugin.app.unregisterWidget(POPUP_WIDGET_NAME, WidgetLocation.Popup);
   await plugin.app.unregisterWidget('translator_sidebar', WidgetLocation.RightSidebar);

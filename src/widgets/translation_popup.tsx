@@ -9,7 +9,7 @@ import { pickLocalized, useUiLanguage } from '../lib/i18n';
 import { getLanguageLabel } from '../lib/languages';
 import { installSdkUnknownEventGuard } from '../lib/sdkGuard';
 import { loadRuntimeSettings } from '../lib/settings';
-import { translateSelectionText } from '../lib/translation';
+import { translateSelectionTextWithBridge } from '../lib/translationBridge';
 import type { TranslationPopupContext, TranslationPopupState } from '../lib/types';
 
 const EMPTY_CONTEXT: TranslationPopupContext = { text: '' };
@@ -126,7 +126,7 @@ function TranslationPopup() {
           copied: false,
         });
 
-        const result = await translateSelectionText(runtimeSettings, {
+        const result = await translateSelectionTextWithBridge(plugin, runtimeSettings, {
           text: request.text,
           sourceLanguage: runtimeSettings.sourceLanguage,
           targetLanguage: runtimeSettings.targetLanguage,

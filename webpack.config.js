@@ -7,8 +7,6 @@ const https = require('https');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { ESBuildMinifyPlugin } = require('esbuild-loader');
 const { ProvidePlugin, BannerPlugin } = require('webpack');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-
 const CopyPlugin = require('copy-webpack-plugin');
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -188,7 +186,14 @@ const config = {
       {
         test: /\.css$/i,
         use: [
-          isDevelopment ? 'style-loader' : MiniCssExtractPlugin.loader,
+          {
+            loader: 'style-loader',
+            options: {
+              attributes: {
+                'data-reader-translator-style': 'true',
+              },
+            },
+          },
           { loader: 'css-loader', options: { url: false } },
           'postcss-loader',
         ],
@@ -196,11 +201,6 @@ const config = {
     ],
   },
   plugins: [
-    isDevelopment
-      ? undefined
-      : new MiniCssExtractPlugin({
-          filename: '[name].css',
-        }),
     new HtmlWebpackPlugin({
       templateContent: `
       <body></body>

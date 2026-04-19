@@ -10,7 +10,7 @@ import { getLanguageLabel } from '../lib/languages';
 import { installSdkUnknownEventGuard } from '../lib/sdkGuard';
 import { loadRuntimeSettings } from '../lib/settings';
 import { useUiTheme } from '../lib/theme';
-import { translateSelectionText } from '../lib/translation';
+import { translateSelectionTextWithBridge } from '../lib/translationBridge';
 
 type SidebarStatus = 'idle' | 'running' | 'success' | 'error';
 
@@ -111,7 +111,7 @@ function TranslatorSidebar() {
       setCopied(false);
 
       const runtimeSettings = await loadRuntimeSettings(plugin);
-      const result = await translateSelectionText(runtimeSettings, {
+      const result = await translateSelectionTextWithBridge(plugin, runtimeSettings, {
         text: sourceText,
         sourceLanguage: runtimeSettings.sourceLanguage,
         targetLanguage: runtimeSettings.targetLanguage,
